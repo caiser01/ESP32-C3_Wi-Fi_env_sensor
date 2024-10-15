@@ -1,0 +1,78 @@
+esphome:
+  name: env-sensor
+  friendly_name: ESP32-C3 environment sensor
+  name_add_mac_suffix: true
+  platformio_options:
+    board_build.f_flash: 80000000L
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    # randomly generate key from https://esphome.io/components/api.html
+    key: "Kb2enJYGFHr2UHuOiyF3GXkyJbHveplMnGYSxhYXdJ0="
+
+ota:
+  - platform: esphome
+
+wifi:
+  # Add your Wi-Fi logon info in secrets.yaml
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "ESP32-Env-Sensor-AP"
+    password: "8mf8ffZcCj2x"
+
+captive_portal:
+    
+i2c:
+  # Board specific I2C pins
+  sda: GPIO7
+  scl: GPIO8
+
+sensor:
+  - platform: bme280_i2c
+    temperature:
+      name: "BME280 Temperature"
+      id: bme280_temperature
+      oversampling: 1x
+    pressure:
+      name: "BME280 Pressure"
+      id: bme280_pressure
+      oversampling: 1x
+    humidity:
+      name: "BME280 Relative Humidity"
+      id: bme280_humidity
+      oversampling: 1x
+    address: 0x77
+    update_interval: 60s
+  - platform: template
+    name: "Altitude"
+    lambda: |-
+      const float STANDARD_SEA_LEVEL_PRESSURE = 1013.25; //in hPa, see note
+      return ((id(bme280_temperature).state + 273.15) / 0.0065) *
+        (powf((STANDARD_SEA_LEVEL_PRESSURE / id(bme280_pressure).state), 0.190234) - 1); // in meter
+    update_interval: 60s
+    icon: 'mdi:signal'
+    unit_of_measurement: 'm'
+  - platform: absolute_humidity
+    name: "Absolute Humidity"
+    temperature: bme280_temperature
+    humidity: bme280_humidity
+  - platform: template
+    name: "Dew Point"
+    lambda: |-
+      return (243.5*(log(id(bme280_humidity).state/100)+((17.67*id(bme280_temperature).state)/
+      (243.5+id(bme280_temperature).state)))/(17.67-log(id(bme280_humidity).state/100)-
+      ((17.67*id(bme280_temperature).state)/(243.5+id(bme280_temperature).state))));
+    unit_of_measurement: °C
+    icon: 'mdi:thermometer-alert'
