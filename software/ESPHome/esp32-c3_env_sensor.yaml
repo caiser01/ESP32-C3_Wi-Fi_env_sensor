@@ -8,7 +8,7 @@ esphome:
 esp32:
   board: esp32-c3-devkitm-1
   framework:
-    type: esp-idf
+    type: arduino
 
 # Enable logging
 logger:
@@ -55,15 +55,6 @@ sensor:
       oversampling: 1x
     address: 0x77
     update_interval: 60s
-  - platform: template
-    name: "Altitude"
-    lambda: |-
-      const float STANDARD_SEA_LEVEL_PRESSURE = 1013.25; //in hPa, see note
-      return ((id(bme280_temperature).state + 273.15) / 0.0065) *
-        (powf((STANDARD_SEA_LEVEL_PRESSURE / id(bme280_pressure).state), 0.190234) - 1); // in meter
-    update_interval: 60s
-    icon: 'mdi:signal'
-    unit_of_measurement: 'm'
   - platform: absolute_humidity
     name: "Absolute Humidity"
     temperature: bme280_temperature
